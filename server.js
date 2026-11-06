@@ -6,13 +6,14 @@ const app = require('./api/index');
 
 const PORT = process.env.PORT || 3000;
 
-// Serve static assets from project root
+// Serve static assets from public/ directory
+app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname)));
 
 // Fallback for HTML5 client routing
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api')) return next();
-  res.sendFile(path.join(__dirname, 'index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 app.listen(PORT, () => {
