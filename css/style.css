@@ -103,15 +103,15 @@ body.ready .foot{opacity:1}
 main{display:flex;place-items:unset}
 .card,.plans{margin:auto}
 .mark{width:104px;height:104px;overflow:visible}
-.mark .h{fill:none;stroke:var(--icon);stroke-width:3;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:1;animation:draw 1.1s .2s cubic-bezier(.4,.1,.2,1) forwards}
-.mark .c{fill:var(--or);transform-box:fill-box;transform-origin:center;transform:scale(0);animation:pop .7s 1s cubic-bezier(.2,1.4,.3,1) forwards}
-.mark .orbg{transform-origin:32px 32px;opacity:0;animation:spin2 5s linear infinite,glow2 .4s 1.4s forwards}
-.mark .d{fill:var(--or2)}
+.burst-spokes{animation:claudeSpin 14s linear infinite;transform-origin:32px 32px}
 .mark-wrap{position:relative}
 .mark-wrap::after{content:"";position:absolute;inset:-34px;border-radius:50%;background:radial-gradient(circle,var(--orglow),transparent 65%);opacity:0;animation:glow2 1.2s 1s ease-out forwards}
+@keyframes claudeSpin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 @keyframes pop{to{transform:scale(1)}}
 @keyframes glow2{to{opacity:1}}
-.logo img{width:28px;height:28px}
+.logo{display:flex;align-items:center;justify-content:center;margin-bottom:20px}
+.logo img,.claude-spin{width:32px;height:32px;display:block;transform-origin:center;animation:claudeSpin 20s linear infinite;transition:transform .4s ease,filter .4s ease}
+.logo:hover img,.logo:hover .claude-spin{animation-duration:6s;filter:drop-shadow(0 0 12px var(--orglow))}
 .view{display:none}
 .view.active{display:block;animation:vin .55s cubic-bezier(.2,.8,.2,1)}
 @keyframes vin{from{opacity:0;transform:translateX(24px)}}
