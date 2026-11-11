@@ -19,3 +19,4 @@ doğrulama kodu sunucu olmadığı için ekranda gösterilir. Gerçek kullanımd
 - şifreleri sunucuda hashle,
 - Windows Hello challenge ve imzasını sunucuda doğrula (js/app.js içinde pkCreate / pkLogin).
 # tobimv1
+# scaleonv1
