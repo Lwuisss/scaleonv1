@@ -1,4 +1,6 @@
 @echo off
-rem Windows Hello (geçiş anahtarı) için sayfa http://localhost üzerinden açılmalı.
-start "" http://localhost:8000
-python -m http.server 8000 || py -m http.server 8000
+title Scaleon Pazaryeri Yonetimi
+cd /d "%~dp0"
+start "" http://localhost:3000
+node server.js
+pause

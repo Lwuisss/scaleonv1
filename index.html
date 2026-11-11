@@ -1,165 +1,456 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Tobim</title>
-<link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,500;12..96,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=2">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Scaleon - Çoklu Pazaryeri Entegrasyon & Satış Paneli</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css?v=6">
+  <!-- SheetJS: Tarayıcıda anında ve hızlı Excel/CSV okuma -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 
-<div class="bg"><div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div><div class="grain"></div></div>
+<!-- Dinamik Mouse Takip Parıltısı -->
+<div id="mouseGlow"></div>
 
-<!-- Açılış animasyonu -->
-<div class="intro" id="intro" aria-hidden="true">
-  <div class="intro-in">
-    <div class="mark-wrap">
-      <svg class="mark claude-intro" viewBox="0 0 64 64">
+<div class="bg">
+  <div class="orb o1"></div>
+  <div class="orb o2"></div>
+  <div class="orb o3"></div>
+</div>
+
+<!-- ======================================================= -->
+<!-- 1. AÇILIŞ EKRANI: SADECE SCALEON LOGO + SLIDING PILL    -->
+<!-- ======================================================= -->
+<div id="authScreen" class="auth-wrapper">
+  <div class="brand-header" id="brandHeader">
+    <div class="brand-logo-wrap">
+      <!-- Scaleon Resmi Yeni Vektör Logosu -->
+      <svg viewBox="0 0 64 64" fill="none">
         <defs>
-          <linearGradient id="markGrad" x1="10%" y1="10%" x2="90%" y2="90%">
-            <stop offset="0%" stop-color="#f5a07c"/>
-            <stop offset="50%" stop-color="#d97757"/>
-            <stop offset="100%" stop-color="#b85437"/>
+          <linearGradient id="scGradLogo" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#ff8a4c"/>
+            <stop offset="50%" stop-color="#e86328"/>
+            <stop offset="100%" stop-color="#c43f0e"/>
+          </linearGradient>
+          <linearGradient id="scGradArrow" x1="0%" y1="100%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#ffa26b"/>
+            <stop offset="100%" stop-color="#ff7332"/>
           </linearGradient>
         </defs>
-        <g class="burst-spokes" transform-origin="32 32">
-          <line x1="32" y1="8" x2="32" y2="22" stroke="url(#markGrad)" stroke-width="4.5" stroke-linecap="round"/>
-          <line x1="32" y1="42" x2="32" y2="56" stroke="url(#markGrad)" stroke-width="4.5" stroke-linecap="round"/>
-          <line x1="8" y1="32" x2="22" y2="32" stroke="url(#markGrad)" stroke-width="4.5" stroke-linecap="round"/>
-          <line x1="42" y1="32" x2="56" y2="32" stroke="url(#markGrad)" stroke-width="4.5" stroke-linecap="round"/>
-          <line x1="15" y1="15" x2="25" y2="25" stroke="url(#markGrad)" stroke-width="4.5" stroke-linecap="round"/>
-          <line x1="39" y1="39" x2="49" y2="49" stroke="url(#markGrad)" stroke-width="4.5" stroke-linecap="round"/>
-          <line x1="15" y1="49" x2="25" y2="39" stroke="url(#markGrad)" stroke-width="4.5" stroke-linecap="round"/>
-          <line x1="39" y1="25" x2="49" y2="15" stroke="url(#markGrad)" stroke-width="4.5" stroke-linecap="round"/>
-          <line x1="20" y1="10" x2="26" y2="23" stroke="url(#markGrad)" stroke-width="4" stroke-linecap="round"/>
-          <line x1="44" y1="10" x2="38" y2="23" stroke="url(#markGrad)" stroke-width="4" stroke-linecap="round"/>
-          <line x1="20" y1="54" x2="26" y2="41" stroke="url(#markGrad)" stroke-width="4" stroke-linecap="round"/>
-          <line x1="44" y1="54" x2="38" y2="41" stroke="url(#markGrad)" stroke-width="4" stroke-linecap="round"/>
-          <circle cx="32" cy="32" r="6.5" fill="url(#markGrad)"/>
-        </g>
+        <path d="M16 22C16 15.3726 21.3726 10 28 10H42C46.4183 10 50 13.5817 50 18C50 22.4183 46.4183 26 42 26H28C24.6863 26 22 28.6863 22 32C22 35.3137 24.6863 38 28 38H42C48.6274 38 54 43.3726 54 50C54 56.6274 48.6274 62 42 62H20C15.5817 62 12 58.4183 12 54C12 49.5817 15.5817 46 20 46H38C41.3137 46 44 43.3137 44 40C44 36.6863 41.3137 34 38 34H26C19.3726 34 14 28.6274 14 22Z" fill="url(#scGradLogo)"/>
+        <path d="M44 10L56 10M56 10L56 22M56 10L36 30" stroke="url(#scGradArrow)" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </div>
-    <div class="word" id="word"></div>
-    <div class="bar"><i></i></div>
+    <h1 class="brand-title">Scaleon</h1>
+    <p class="brand-sub">Tüm mağazalarınızı tek panelden ölçekleyin, ürünlerinizi saniyeler içinde aktarın.</p>
+  </div>
+
+  <!-- KAYAN OVAL PILL SWITCH (HOVER'DA CANLI TURUNCU PARILTI) -->
+  <div class="pill-switch-wrap" id="pillSwitchWrap">
+    <!-- Kayan Turuncu Kapsül -->
+    <div class="pill-indicator" id="pillIndicator"></div>
+
+    <!-- BUTON 1: PERSON İKONU + GİRİŞ YAP -->
+    <button type="button" class="pill-tab-btn" id="pillBtnLogin">
+      <svg class="ico" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span>Giriş Yap</span>
+    </button>
+
+    <!-- BUTON 2: ANAHTAR İKONU + KAYIT OL -->
+    <button type="button" class="pill-tab-btn" id="pillBtnRegister">
+      <svg class="ico" viewBox="0 0 24 24"><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4M10.5 13.5 3 21l-1-1 7.5-7.5"/><circle cx="15.5" cy="8.5" r="4.5"/></svg>
+      <span>Kayıt Ol</span>
+    </button>
+  </div>
+
+  <!-- SADECE TIKLAYINCA AÇILAN ANİMASYONLU FORMLAR ALANI -->
+  <div class="auth-panel-viewport" id="authPanelViewport">
+    <!-- 1. GİRİŞ YAP KARTI -->
+    <div class="auth-popup-card" id="cardLogin">
+      <button type="button" class="card-close-btn" id="btnCloseLogin" title="Kapat">✕</button>
+      <h2>
+        <svg class="ico" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/></svg>
+        Giriş Yap
+      </h2>
+      <p class="card-desc">Scaleon hesabınıza giriş yaparak mağaza panellerinize ulaşın.</p>
+      
+      <form id="fLogin" method="POST" action="#" autocomplete="on">
+        <div class="f">
+          <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 8 8 6 8-6"/></svg>
+          <input id="lEmail" name="username" type="email" placeholder=" " required autocomplete="username">
+          <label for="lEmail">E-posta adresi</label>
+        </div>
+
+        <div class="f">
+          <svg class="ico" viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+          <input id="lPw" name="password" type="password" placeholder=" " required autocomplete="current-password">
+          <label for="lPw">Şifre</label>
+          <button type="button" class="eye" aria-label="Şifre göster"><svg class="ico" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        </div>
+
+        <div id="loginErr" class="err-box"></div>
+
+        <div class="row">
+          <label class="chk"><input type="checkbox" id="lRemember" checked><span class="box"><svg viewBox="0 0 12 12"><path d="m2 6.5 2.5 2.5L10 3"/></svg></span>Beni hatırla</label>
+          <span style="font-size:12px;color:var(--mut)">Şifremi unuttum</span>
+        </div>
+
+        <button class="btn" type="submit" id="btnLogin">
+          <span class="lbl">Giriş Yap</span>
+          <svg class="ico" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          <span class="spin"></span>
+        </button>
+      </form>
+    </div>
+
+    <!-- 2. KAYIT OL KARTI -->
+    <div class="auth-popup-card" id="cardRegister">
+      <button type="button" class="card-close-btn" id="btnCloseRegister" title="Kapat">✕</button>
+      <h2>
+        <svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c1-4 4-6 8-6s7 2 8 6"/></svg>
+        Kayıt Oluştur
+      </h2>
+      <p class="card-desc">Satış yaptığınız platformları seçin, hesabınızı oluşturup hemen başlayın.</p>
+
+      <form id="fRegister" method="POST" action="#" autocomplete="on">
+        <div class="f">
+          <svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c1-4 4-6 8-6s7 2 8 6"/></svg>
+          <input id="rName" name="name" type="text" placeholder=" " required autocomplete="name">
+          <label for="rName">Adınız ve Soyadınız</label>
+        </div>
+
+        <div class="f">
+          <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 8 8 6 8-6"/></svg>
+          <input id="rEmail" name="username" type="email" placeholder=" " required autocomplete="username">
+          <label for="rEmail">E-posta adresi</label>
+        </div>
+
+        <div class="f">
+          <svg class="ico" viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+          <input id="rPw" name="password" type="password" placeholder=" " required autocomplete="new-password">
+          <label for="rPw">Şifre belirleyin</label>
+          <button type="button" class="eye" aria-label="Şifre göster"><svg class="ico" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        </div>
+
+        <div class="meter" id="rMeter" data-s="0"><i></i><i></i><i></i><i></i></div>
+
+        <!-- PAZARYERİ LOGOLARI (YÜKSEK KALİTELİ VE RESMİ STANDARTLARDA) -->
+        <div class="plat-label">
+          <span>Satış Yaptığınız Platformlar</span>
+          <span>(Birden fazla seçebilirsiniz)</span>
+        </div>
+
+        <div class="plat-grid" id="regPlatformGrid">
+          <!-- 1. TRENDYOL -->
+          <div class="plat-card active" data-platform="trendyol">
+            <span class="p-check">✓</span>
+            <svg viewBox="0 0 120 32" class="p-logo" fill="none">
+              <path d="M14 6C9.58 6 6 9.58 6 14c0 3.8 2.65 6.98 6.24 7.76l1.76 5.24 1.76-5.24C19.35 20.98 22 17.8 22 14c0-4.42-3.58-8-8-8zm0 11.2c-1.77 0-3.2-1.43-3.2-3.2s1.43-3.2 3.2-3.2 3.2 1.43 3.2 3.2-1.43 3.2-3.2 3.2z" fill="#F27A1A"/>
+              <text x="30" y="21" font-family="'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif" font-weight="900" font-size="16.5" letter-spacing="-0.5px" fill="#F27A1A">trendyol</text>
+            </svg>
+            <span class="p-name">Trendyol</span>
+          </div>
+
+          <!-- 2. ETSY (Optimizatörlü) -->
+          <div class="plat-card active" data-platform="etsy">
+            <span class="p-check">✓</span>
+            <svg viewBox="0 0 110 32" class="p-logo" fill="none">
+              <rect x="2" y="3" width="26" height="26" rx="7" fill="#F1641E"/>
+              <text x="15" y="22" font-family="'Georgia', 'Times New Roman', serif" font-weight="bold" font-size="20" fill="#ffffff" text-anchor="middle">E</text>
+              <text x="36" y="23" font-family="'Georgia', 'Times New Roman', serif" font-weight="bold" font-size="22" letter-spacing="-0.5px" fill="#F1641E">Etsy</text>
+            </svg>
+            <span class="p-name">Etsy</span>
+            <span class="plat-badge">Optimizatör</span>
+          </div>
+
+          <!-- 3. HEPSİBURADA -->
+          <div class="plat-card active" data-platform="hepsiburada">
+            <span class="p-check">✓</span>
+            <svg viewBox="0 0 135 32" class="p-logo" fill="none">
+              <rect x="2" y="3" width="26" height="26" rx="7" fill="#FF6000"/>
+              <path d="M10 9v14M20 9v14M10 16h10" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+              <text x="34" y="22" font-family="'Segoe UI', -apple-system, sans-serif" font-weight="800" font-size="15" fill="#FF6000">hepsiburada</text>
+            </svg>
+            <span class="p-name">Hepsiburada</span>
+          </div>
+
+          <!-- 4. İDEFİX -->
+          <div class="plat-card active" data-platform="idefix">
+            <span class="p-check">✓</span>
+            <svg viewBox="0 0 100 32" class="p-logo" fill="none">
+              <rect x="2" y="3" width="26" height="26" rx="7" fill="#005BBB"/>
+              <circle cx="15" cy="11" r="2.5" fill="#E30613"/>
+              <rect x="13" y="15" width="4" height="8" rx="1" fill="#fff"/>
+              <text x="34" y="22" font-family="'Segoe UI', -apple-system, sans-serif" font-weight="800" font-size="18" letter-spacing="-0.5px" fill="#005BBB">idefix</text>
+            </svg>
+            <span class="p-name">İdefix</span>
+          </div>
+
+          <!-- 5. PAZARAMA -->
+          <div class="plat-card active" data-platform="pazarama">
+            <span class="p-check">✓</span>
+            <svg viewBox="0 0 115 32" class="p-logo" fill="none">
+              <rect x="2" y="3" width="26" height="26" rx="7" fill="#00C49F"/>
+              <path d="M9 11h12l-2 8H11z" fill="#fff"/>
+              <circle cx="12" cy="21" r="1.5" fill="#fff"/>
+              <circle cx="18" cy="21" r="1.5" fill="#fff"/>
+              <text x="34" y="22" font-family="'Segoe UI', -apple-system, sans-serif" font-weight="800" font-size="16" letter-spacing="-0.5px" fill="#00C49F">pazarama</text>
+            </svg>
+            <span class="p-name">Pazarama</span>
+          </div>
+        </div>
+
+        <div id="regErr" class="err-box"></div>
+
+        <label class="chk" style="margin-bottom:16px">
+          <input type="checkbox" id="rTerms" checked required>
+          <span class="box"><svg viewBox="0 0 12 12"><path d="m2 6.5 2.5 2.5L10 3"/></svg></span>
+          Kullanım koşullarını ve gizlilik politikasını kabul ediyorum
+        </label>
+
+        <button class="btn" type="submit" id="btnReg">
+          <span class="lbl">Hesap Oluştur ve Başla</span>
+          <svg class="ico" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          <span class="spin"></span>
+        </button>
+      </form>
+    </div>
   </div>
 </div>
 
-<main>
-  <section class="card" id="card">
-    <div class="logo"><img class="claude-spin" src="assets/logo.svg?v=2" alt="Tobim"></div>
+<!-- ======================================================= -->
+<!-- 2. ANA PANEL: PLATFORM YÖNETİMİ & ÜRÜN KARTLARI         -->
+<!-- ======================================================= -->
+<div id="appScreen">
+  <header class="dash-header">
+    <div class="dash-brand">
+      <svg viewBox="0 0 64 64" fill="none" style="width:36px;height:36px">
+        <path d="M16 22C16 15.3726 21.3726 10 28 10H42C46.4183 10 50 13.5817 50 18C50 22.4183 46.4183 26 42 26H28C24.6863 26 22 28.6863 22 32C22 35.3137 24.6863 38 28 38H42C48.6274 38 54 43.3726 54 50C54 56.6274 48.6274 62 42 62H20C15.5817 62 12 58.4183 12 54C12 49.5817 15.5817 46 20 46H38C41.3137 46 44 43.3137 44 40C44 36.6863 41.3137 34 38 34H26C19.3726 34 14 28.6274 14 22Z" fill="#e86328"/>
+        <path d="M44 10L56 10M56 10L56 22M56 10L36 30" stroke="#ffa26b" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="dash-brand-title">Scaleon</span>
+    </div>
 
-    <!-- GİRİŞ -->
-    <div class="view active" data-v="login">
-      <h1>Tekrar hoş geldin</h1>
-      <p class="sub">Hesabına giriş yap ve kaldığın yerden devam et.</p>
-      <form id="fLogin" novalidate>
-        <div class="f">
-          <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 8 8 6 8-6"/></svg>
-          <input id="lEmail" type="email" placeholder=" " autocomplete="email"><label for="lEmail">E-posta adresi</label>
-        </div>
-        <div class="f">
-          <svg class="ico" viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
-          <input id="lPw" type="password" placeholder=" " autocomplete="current-password"><label for="lPw">Şifre</label>
-          <button type="button" class="eye" aria-label="Şifreyi göster"><svg class="ico show" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg><svg class="ico off" viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6.400 0 10 7 10 7a17 17 0 0 1-3.200 4M6.600 6.600A17 17 0 0 0 2 12s3.600 7 10 7a10 10 0 0 0 4.200-1M9.900 9.900a3 3 0 0 0 4.200 4.200"/></svg></button>
-        </div>
-        <div class="err" role="alert"></div>
-        <div class="row">
-          <label class="chk"><input type="checkbox"><span class="box"><svg viewBox="0 0 12 12"><path d="m2 6.500 2.500 2.500L10 3"/></svg></span>Beni hatırla</label>
-          <a href="#" data-go="reset">Şifremi unuttum</a>
-        </div>
-        <button class="btn" type="submit"><span class="lbl">Giriş yap</span><svg class="ico arr" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg><span class="spin"></span></button>
-      </form>
-      <div class="sep">veya</div>
-      <div class="alt">
-        <button type="button" id="pkLogin">
-          <svg class="ico" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M16 7l3 3M14 9l2 2"/></svg>
-          Windows Hello ile giriş
-        </button>
+    <!-- Platform Seçici Sekmeler -->
+    <nav class="dash-platforms" id="platformTabs">
+      <button class="plat-tab active" data-p="etsy">
+        <span>Etsy</span>
+        <span class="tab-badge">Optimizatör</span>
+      </button>
+      <button class="plat-tab" data-p="trendyol">
+        <span>Trendyol</span>
+      </button>
+      <button class="plat-tab" data-p="hepsiburada">
+        <span>Hepsiburada</span>
+      </button>
+      <button class="plat-tab" data-p="idefix">
+        <span>İdefix</span>
+      </button>
+      <button class="plat-tab" data-p="pazarama">
+        <span>Pazarama</span>
+      </button>
+    </nav>
+
+    <!-- Kullanıcı Menüsü -->
+    <div class="dash-user-menu">
+      <div class="user-badge" id="uBadge">
+        <svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c1-4 4-6 8-6s7 2 8 6"/></svg>
+        <span id="userNameDisp">Kullanıcı</span>
       </div>
-      <div class="err" id="pkErr" role="alert" style="margin-top:10px;text-align:center"></div>
-      <p class="foot">Hesabın yok mu? <a href="#" data-go="register">Hemen oluştur</a></p>
+      <button class="btn-logout" id="btnLogout" title="Güvenli Çıkış">Çıkış Yap</button>
+    </div>
+  </header>
+
+  <main class="dash-body">
+    <!-- Platform Başlık Bannerı -->
+    <section class="platform-banner" id="platBanner">
+      <div class="plat-title-wrap">
+        <h1 id="platTitle">Etsy Ürün Yönetimi & SEO Optimizatörü</h1>
+        <p id="platSub">Etsy arama algoritmasına tam uyumlu 140 karakter başlık, 13 etiket ve SEO açıklamaları.</p>
+      </div>
+      <div id="etsyApiKeyNotice" style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:12px;color:var(--mut)">Gemini AI SEO Motoru:</span>
+        <span style="font-size:12px;background:#2b8a3e;color:#fff;padding:4px 8px;border-radius:6px;font-weight:600">● Aktif</span>
+      </div>
+    </section>
+
+    <!-- BÖLÜM 1: LİSTE YÜKLE (Excel / CSV) -->
+    <div class="upload-card" id="dropArea">
+      <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none">
+      <svg class="upload-icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+      <h3 class="upload-title" id="uploadStatusText">Excel veya CSV Listenizi Buraya Sürükleyin veya Tıklayın</h3>
+      <p class="upload-sub">.xlsx, .xls ve .csv formatları desteklenir. Ürün başlıkları, fotoğrafları, fiyatları otomatik tespit edilir.</p>
     </div>
 
-    <!-- KAYIT -->
-    <div class="view" data-v="register">
-      <h1>Hesap oluştur</h1>
-      <p class="sub">Birkaç saniyede başla. E-postanı doğrulayacağız.</p>
-      <form id="fReg" novalidate>
-        <div class="f">
-          <svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c1-4 4-6 8-6s7 2 8 6"/></svg>
-          <input id="rName" type="text" placeholder=" " autocomplete="name"><label for="rName">Ad soyad</label>
+    <!-- Sütun Eşleştirme Çubuğu -->
+    <div class="col-map-card" id="colMapCard" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <strong style="font-size:13.5px">Otomatik Sütun Eşleştirmeleri</strong>
+        <span style="font-size:12px;color:var(--mut)" id="colMatchStatus">Tüm temel sütunlar algılandı</span>
+      </div>
+      <div class="col-map-grid">
+        <div class="col-map-item">
+          <label>Başlık Sütunu</label>
+          <select id="selColTitle"></select>
         </div>
-        <div class="f">
-          <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 8 8 6 8-6"/></svg>
-          <input id="rEmail" type="email" placeholder=" " autocomplete="email"><label for="rEmail">E-posta adresi</label>
+        <div class="col-map-item">
+          <label>Açıklama Sütunu</label>
+          <select id="selColDesc"></select>
         </div>
-        <div class="f">
-          <svg class="ico" viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
-          <input id="rPw" type="password" placeholder=" " autocomplete="new-password"><label for="rPw">Şifre</label>
-          <button type="button" class="eye" aria-label="Şifreyi göster"><svg class="ico show" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg><svg class="ico off" viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6.400 0 10 7 10 7a17 17 0 0 1-3.200 4M6.600 6.600A17 17 0 0 0 2 12s3.600 7 10 7a10 10 0 0 0 4.200-1M9.900 9.900a3 3 0 0 0 4.200 4.200"/></svg></button>
+        <div class="col-map-item">
+          <label>Fiyat Sütunu</label>
+          <select id="selColPrice"></select>
         </div>
-        <div class="meter" id="meter" data-s="0"><i></i><i></i><i></i><i></i></div>
-        <div class="err" role="alert"></div>
-        <label class="chk" style="margin:0 0 18px;font-size:14px;color:var(--mut)"><input type="checkbox" id="rTerms"><span class="box"><svg viewBox="0 0 12 12"><path d="m2 6.500 2.500 2.500L10 3"/></svg></span>Kullanım koşullarını kabul ediyorum</label>
-        <button class="btn" type="submit"><span class="lbl">Hesap oluştur</span><svg class="ico arr" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg><span class="spin"></span></button>
-      </form>
-      <p class="foot">Zaten hesabın var mı? <a href="#" data-go="login">Giriş yap</a></p>
-    </div>
-
-    <!-- E-POSTA DOĞRULAMA -->
-    <div class="view" data-v="verify">
-      <button class="back" type="button" data-go="register"><svg class="ico" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>E-postayı değiştir</button>
-      <h1>Kodu gir</h1>
-      <p class="sub"><b id="vMail"></b> adresine 6 haneli bir doğrulama kodu gönderdik.</p>
-      <div class="otp" id="otp"></div>
-      <div class="err" id="vErr" role="alert" style="text-align:center"></div>
-      <p class="hint">Kod gelmedi mi? <button class="lnk" type="button" id="resend" disabled>Tekrar gönder</button></p>
-    </div>
-
-    <!-- ŞİFRE SIFIRLAMA -->
-    <div class="view" data-v="reset">
-      <button class="back" type="button" data-go="login"><svg class="ico" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>Girişe dön</button>
-      <h1>Şifreni sıfırla</h1>
-      <p class="sub">E-posta adresini yaz, sıfırlama bağlantısını gönderelim.</p>
-      <form id="fReset" novalidate>
-        <div class="f">
-          <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 8 8 6 8-6"/></svg>
-          <input id="pEmail" type="email" placeholder=" " autocomplete="email"><label for="pEmail">E-posta adresi</label>
+        <div class="col-map-item">
+          <label>Stok / Barkod Sütunu</label>
+          <select id="selColStock"></select>
         </div>
-        <div class="err" role="alert"></div>
-        <button class="btn" type="submit"><span class="lbl">Bağlantı gönder</span><span class="spin"></span></button>
-      </form>
+        <div class="col-map-item">
+          <label>Fotoğraf / Görsel Sütunu</label>
+          <select id="selColImages"></select>
+        </div>
+      </div>
     </div>
 
-    <!-- HAZIR -->
-    <div class="view" data-v="done">
-      <svg class="okc" viewBox="0 0 64 64"><circle cx="32" cy="32" r="28" pathLength="1"/><path d="m20 33 8 8 17-18" pathLength="1"/></svg>
-      <h1 id="dTitle">Hoş geldin</h1>
-      <span class="pill" id="dPlan"></span>
-      <p class="sub" style="margin-top:-8px">Hesabın hazır. İstersen bu cihaz için Windows Hello anahtarı ekleyip bir dahaki sefere şifresiz giriş yapabilirsin.</p>
-      <button class="ghost" type="button" id="pkAdd" style="margin-top:0"><svg class="ico" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M16 7l3 3M14 9l2 2"/></svg>Windows Hello anahtarı ekle</button>
-      <button class="ghost" type="button" data-go="plans"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 10h18"/></svg>Planı değiştir</button>
-      <button class="ghost" type="button" id="logout"><svg class="ico" viewBox="0 0 24 24"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 8l-4 4 4 4M6 12h10"/></svg>Çıkış yap</button>
-      <div class="err" id="dErr" role="alert" style="margin-top:10px;text-align:center"></div>
+    <!-- BÖLÜM 2: ÜRÜN KARTI & KOPYALAMA ALANI -->
+    <div id="productSection" style="display:none">
+      <!-- Üst Navigasyon & Auto-Advance Bar -->
+      <div class="nav-bar">
+        <div class="nav-buttons">
+          <button class="nav-btn" id="btnPrev">
+            <svg class="ico" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            Önceki
+          </button>
+          <span class="nav-counter" id="navCounter">Ürün 1 / 1</span>
+          <button class="nav-btn" id="btnNext">
+            Sonraki
+            <svg class="ico" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+
+        <!-- KOPYALADIKTAN SONRA SONRAKİ ÜRÜNE ATLA KUTUCUĞU -->
+        <label class="auto-advance-wrap" title="Herhangi bir veriyi kopyaladığınızda anında bir sonraki ürüne geçer">
+          <span class="chk">
+            <input type="checkbox" id="chkAutoAdvance" checked>
+            <span class="box"><svg viewBox="0 0 12 12"><path d="m2 6.5 2.5 2.5L10 3"/></svg></span>
+          </span>
+          <span style="font-size:13.5px;font-weight:700">Kopyaladıktan Sonra Sonraki Ürüne Atla</span>
+        </label>
+      </div>
+
+      <!-- İki Kolonlu Ürün Detay Görünümü (Split-View) -->
+      <div class="product-split">
+        <!-- SOL KOLON: GÖRSEL GALERİSİ & FOTOĞRAFLARDA İLERİ GERİ YAPMA -->
+        <div class="gallery-card">
+          <div class="image-viewer">
+            <img id="mainImage" class="main-img" src="" alt="Ürün Fotoğrafı">
+            <button class="img-nav-btn img-prev" id="imgPrev" title="Önceki Fotoğraf">❮</button>
+            <button class="img-nav-btn img-next" id="imgNext" title="Sonraki Fotoğraf">❯</button>
+            <span class="img-counter" id="imgCounter">Görsel 1 / 1</span>
+          </div>
+          <div class="thumbs-row" id="thumbsRow"></div>
+          <a id="imgFullLink" href="#" target="_blank" style="margin-top:12px;font-size:12px;color:var(--or2)">Görseli Tam Boy Aç ↗</a>
+        </div>
+
+        <!-- SAĞ KOLON: ÜRÜN BİLGİLERİ -->
+        <div class="info-card">
+          <!-- Ürün Başlığı -->
+          <div>
+            <div class="field-header">
+              <span class="field-title">Ürün Başlığı / Adı</span>
+              <button class="copy-pill-btn" data-copy-target="prodTitle">
+                <svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                Başlığı Kopyala
+              </button>
+            </div>
+            <div class="info-box" id="prodTitle"></div>
+          </div>
+
+          <!-- Fiyat & Stok / Barkod Bilgisi -->
+          <div class="stats-grid">
+            <div class="stat-pill">
+              <div>
+                <div style="font-size:11px;color:var(--mut);font-weight:600">SATIŞ FİYATI</div>
+                <div class="stat-val" id="prodPrice">-</div>
+              </div>
+              <button class="copy-pill-btn" data-copy-target="prodPrice">Kopyala</button>
+            </div>
+            <div class="stat-pill">
+              <div>
+                <div style="font-size:11px;color:var(--mut);font-weight:600">STOK / BARKOD / SKU</div>
+                <div class="stat-val" id="prodStock" style="font-size:14px;color:var(--text)">-</div>
+              </div>
+              <button class="copy-pill-btn" data-copy-target="prodStock">Kopyala</button>
+            </div>
+          </div>
+
+          <!-- Ürün Açıklaması -->
+          <div>
+            <div class="field-header">
+              <span class="field-title">Ürün Açıklaması</span>
+              <button class="copy-pill-btn" data-copy-target="prodDesc">
+                <svg class="ico" viewBox="0 0 24 24" style="width:14px;height:14px"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                Açıklamayı Kopyala
+              </button>
+            </div>
+            <div class="info-box info-desc" id="prodDesc"></div>
+          </div>
+
+          <!-- SADECE ETSYDE GÖRÜNEN YAPAY ZEKA OPTİMİZATÖRÜ -->
+          <div class="etsy-opt-section" id="etsyOptimizerSection">
+            <div class="etsy-opt-header">
+              <div>
+                <strong style="font-size:15px;color:var(--or2)">Etsy SEO Optimizatörü</strong>
+                <p style="margin:2px 0 0;font-size:12px;color:var(--mut)">Algoritma uyumlu 140 karakter başlık ve 13 etiket</p>
+              </div>
+              <button class="btn-optimize" id="btnOptimizeEtsy">
+                <svg class="ico" viewBox="0 0 24 24"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                <span id="optBtnLabel">Gemini ile Optimize Et</span>
+              </button>
+            </div>
+
+            <div style="margin-bottom:14px">
+              <div class="field-header">
+                <span class="field-title" style="color:var(--or2)">Optimize Edilmiş Etsy Başlığı (Max 140 Karakter)</span>
+                <button class="copy-pill-btn" data-copy-target="etsyOptTitle">Optimize Başlığı Kopyala</button>
+              </div>
+              <div class="info-box" id="etsyOptTitle" style="border-color:rgba(232,99,40,.3);background:rgba(232,99,40,.06)">Henüz optimize edilmedi. "Gemini ile Optimize Et" butonuna basınız.</div>
+            </div>
+
+            <div style="margin-bottom:14px">
+              <div class="field-header">
+                <span class="field-title" style="color:var(--or2)">13 Adet Etsy Etiketi (Tek Tıkla Kopyala)</span>
+                <button class="copy-pill-btn" id="btnCopyAllTags">Tümünü Virgülle Kopyala</button>
+              </div>
+              <div class="etsy-tag-wrap" id="etsyTagsWrap">
+                <span style="font-size:13px;color:var(--mut)">Henüz etiket üretilmedi.</span>
+              </div>
+            </div>
+
+            <div>
+              <div class="field-header">
+                <span class="field-title" style="color:var(--or2)">Optimize Edilmiş İngilizce Açıklama</span>
+                <button class="copy-pill-btn" data-copy-target="etsyOptDesc">Optimize Açıklamayı Kopyala</button>
+              </div>
+              <div class="info-box info-desc" id="etsyOptDesc">Henüz optimize edilmedi.</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-  </section>
+  </main>
+</div>
 
-  <!-- PLAN SEÇİMİ -->
-  <section class="plans" id="plans" aria-labelledby="pt">
-    <h1 id="pt">Sana uygun planı seç</h1>
-    <p class="sub" style="margin-bottom:18px">İstediğin zaman değiştirebilir ya da iptal edebilirsin.</p>
-    <div class="tog" id="tog"><button type="button" data-b="0" class="on">Aylık</button><button type="button" data-b="1">Yıllık · %20 indirim</button></div>
-    <div class="pgrid" id="pgrid"></div>
-    <button class="btn go" id="pGo" type="button"><span class="lbl"></span><svg class="ico arr" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
-  </section>
-</main>
+<!-- Bildirim Toast -->
+<div class="toast" id="toastMsg">
+  <svg class="ico" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>
+  <span id="toastText">Kopyalandı</span>
+</div>
 
-<button class="replay" id="replay" aria-label="Animasyonu tekrar oynat"><svg class="ico" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.700L3 8M3 3v5h5"/></svg></button>
-<div class="toast" id="toast" role="status"><svg class="ico" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg><span id="tmsg"></span></div>
-
-<script src="js/app.js?v=2"></script>
+<script src="js/app.js?v=6"></script>
 </body>
 </html>

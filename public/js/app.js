@@ -1,585 +1,836 @@
 'use strict';
 
-/* ============ AYARLAR ============ */
-const CONFIG = {
-  brand: 'Tobim',
-  otpLength: 6,
-  resendSeconds: 30,
-  plans: [
-    { id: 'free', name: 'Başlangıç', desc: 'Kişisel denemeler için.', price: [0, 0],
-      features: ['1 proje', 'Temel destek', '500 MB depolama'] },
-    { id: 'pro', name: 'Pro', desc: 'Üretken bireyler ve freelancer’lar için.', price: [199, 159], pop: true,
-      features: ['Sınırsız proje', 'Öncelikli destek', '50 GB depolama', 'Gelişmiş analizler'] },
-    { id: 'team', name: 'Takım', desc: 'Birlikte çalışan ekipler için.', price: [599, 479],
-      features: ['Pro’daki her şey', '10 takım üyesi', 'Rol ve yetki yönetimi', 'SSO ve denetim kayıtları'] }
-  ]
-};
+/* ========================================================= */
+/* TOBIM - ÇOKLU PAZARYERİ VE ENTEGRASYON YÖNETİMİ           */
+/* ========================================================= */
 
-/* ============ YARDIMCILAR ============ */
-const $ = (s, r = document) => r.querySelector(s);
-const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 const LS = {
-  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
-  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
-  del(k) { try { localStorage.removeItem(k); } catch (e) {} }
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (_) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (_) {} },
+  del(k) { try { localStorage.removeItem(k); } catch (_) {} }
 };
 
 let currentUser = null;
-let currentPendingEmail = LS.get('tobim_pending_email', '');
+let currentPlatform = 'etsy';
 
-let toastT;
-function say(m, ms = 3200) {
-  $('#tmsg').textContent = m;
-  $('#toast').classList.add('show');
-  clearTimeout(toastT);
-  toastT = setTimeout(() => $('#toast').classList.remove('show'), ms);
-}
+// Ürün Listesi ve Eşleştirme Verileri
+let parsedProducts = [];
+let currentProductIndex = 0;
+let currentImageIndex = 0;
+let detectedColumns = {
+  title: '',
+  desc: '',
+  price: '',
+  stock: '',
+  images: ''
+};
 
-function shake() {
-  const c = $('#card');
-  c.classList.remove('shake');
-  void c.offsetWidth;
-  c.classList.add('shake');
-}
+// Platform Bilgileri
+const PLATFORM_INFOS = {
+  etsy: {
+    title: 'Etsy Ürün Yönetimi & SEO Optimizatörü',
+    sub: 'Etsy arama algoritmasına tam uyumlu 140 karakter başlık, 13 etiket ve SEO açıklamaları.',
+    hasOptimizer: true
+  },
+  trendyol: {
+    title: 'Trendyol Ürün Listeleme & Hızlı Aktarım Paneli',
+    sub: 'Trendyol mağazanız için ürün bilgilerini, barkodları ve görselleri tek tıkla kopyalayın.',
+    hasOptimizer: false
+  },
+  hepsiburada: {
+    title: 'Hepsiburada Ürün & Katalog Paneli',
+    sub: 'Hepsiburada satıcı portalına aktarmak için ürün ve fiyat detayları hazır.',
+    hasOptimizer: false
+  },
+  idefix: {
+    title: 'İdefix Mağaza Ürün Listeleme Paneli',
+    sub: 'İdefix pazar yeri ürün bilgilerini, açıklamalarını ve görsellerini inceleyin ve aktarın.',
+    hasOptimizer: false
+  },
+  pazarama: {
+    title: 'Pazarama Ürün & Satış Paneli',
+    sub: 'Pazarama satıcı panelinize hızlıca ürün yüklemek için temiz veri görünümü.',
+    hasOptimizer: false
+  }
+};
 
-function setErr(el, msg, fix) {
-  if (!el) return;
-  el.textContent = msg || '';
-  if (msg) shake();
-  if (fix) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'lnk';
-    b.dataset.fix = fix;
-    b.textContent = fix + ' olarak düzelt';
-    el.appendChild(b);
+/* ========================================================= */
+/* 1. MOUSE GLOW & INTERAKTIF ANİMASYONLAR                   */
+/* ========================================================= */
+const mouseGlow = document.getElementById('mouseGlow');
+window.addEventListener('mousemove', e => {
+  if (mouseGlow) {
+    mouseGlow.style.opacity = '1';
+    mouseGlow.style.left = e.clientX + 'px';
+    mouseGlow.style.top = e.clientY + 'px';
+  }
+});
+window.addEventListener('mouseleave', () => {
+  if (mouseGlow) mouseGlow.style.opacity = '0';
+});
+
+// Kopyalama Kıvılcım Patlaması
+function createSparkles(x, y) {
+  const count = 14;
+  for (let i = 0; i < count; i++) {
+    const s = document.createElement('div');
+    s.className = 'sparkle';
+    const angle = (i / count) * 2 * Math.PI;
+    const dist = 30 + Math.random() * 45;
+    const tx = Math.cos(angle) * dist + 'px';
+    const ty = Math.sin(angle) * dist + 'px';
+    s.style.setProperty('--tx', tx);
+    s.style.setProperty('--ty', ty);
+    s.style.left = x + 'px';
+    s.style.top = y + 'px';
+    document.body.appendChild(s);
+    setTimeout(() => s.remove(), 700);
   }
 }
 
-function busy(btn, on) {
-  if (!btn) return;
-  btn.classList.toggle('load', on);
-  btn.disabled = on;
+/* ========================================================= */
+/* 2. KAYAN OVAL PILL SWITCH & TIKLAYINCA AÇILAN KARTLAR     */
+/* ========================================================= */
+const pillWrap = document.getElementById('pillSwitchWrap');
+const pillIndicator = document.getElementById('pillIndicator');
+const pillBtnLogin = document.getElementById('pillBtnLogin');
+const pillBtnRegister = document.getElementById('pillBtnRegister');
+const cardLogin = document.getElementById('cardLogin');
+const cardRegister = document.getElementById('cardRegister');
+const btnCloseLogin = document.getElementById('btnCloseLogin');
+const btnCloseRegister = document.getElementById('btnCloseRegister');
+
+function updatePillPosition(activeBtn) {
+  if (!activeBtn || !pillWrap || !pillIndicator) return;
+  const wrapRect = pillWrap.getBoundingClientRect();
+  const btnRect = activeBtn.getBoundingClientRect();
+  const left = btnRect.left - wrapRect.left - 6; // padding compensation
+  pillIndicator.style.width = btnRect.width + 'px';
+  pillIndicator.style.transform = `translateX(${left}px)`;
+  pillIndicator.classList.add('active');
 }
 
-/* ============ API İSTEMCİSİ ============ */
-async function api(path, options = {}) {
+function openCard(cardType) {
+  if (cardType === 'login') {
+    pillBtnLogin.classList.add('active');
+    pillBtnRegister.classList.remove('active');
+    updatePillPosition(pillBtnLogin);
+
+    cardRegister.classList.remove('open');
+    cardLogin.classList.add('open');
+    const inp = document.getElementById('lEmail');
+    if (inp) setTimeout(() => inp.focus(), 250);
+  } else if (cardType === 'register') {
+    pillBtnRegister.classList.add('active');
+    pillBtnLogin.classList.remove('active');
+    updatePillPosition(pillBtnRegister);
+
+    cardLogin.classList.remove('open');
+    cardRegister.classList.add('open');
+    const inp = document.getElementById('rName');
+    if (inp) setTimeout(() => inp.focus(), 250);
+  }
+}
+
+function closeAllCards() {
+  cardLogin.classList.remove('open');
+  cardRegister.classList.remove('open');
+  pillBtnLogin.classList.remove('active');
+  pillBtnRegister.classList.remove('active');
+  pillIndicator.classList.remove('active');
+}
+
+// Buton tıklamaları: Tıklayınca açılır, tekrar tıklanırsa kapanır
+pillBtnLogin.addEventListener('click', () => {
+  if (cardLogin.classList.contains('open')) {
+    closeAllCards();
+  } else {
+    openCard('login');
+  }
+});
+
+pillBtnRegister.addEventListener('click', () => {
+  if (cardRegister.classList.contains('open')) {
+    closeAllCards();
+  } else {
+    openCard('register');
+  }
+});
+
+if (btnCloseLogin) btnCloseLogin.addEventListener('click', closeAllCards);
+if (btnCloseRegister) btnCloseRegister.addEventListener('click', closeAllCards);
+
+/* ========================================================= */
+/* 3. TOAST & GOOGLE ŞİFRELERE KAYDETME YARDIMCILARI        */
+/* ========================================================= */
+let toastTimer = null;
+function showToast(text, isSuccess = true) {
+  const el = document.getElementById('toastMsg');
+  const txt = document.getElementById('toastText');
+  if (!el || !txt) return;
+  txt.textContent = text;
+  el.className = 'toast show ' + (isSuccess ? 'success' : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    el.className = 'toast';
+  }, 2200);
+}
+
+// Google Password Manager Entegrasyonu
+async function saveToGooglePasswords(email, password, name = '') {
+  try {
+    if (window.PasswordCredential && navigator.credentials) {
+      const cred = new PasswordCredential({
+        id: email,
+        password: password,
+        name: name || email
+      });
+      await navigator.credentials.store(cred);
+    }
+  } catch (_) {}
+}
+
+function copyToClipboard(text, successMsg = 'Panoya Kopyalandı', triggerAutoAdvance = true, event = null) {
+  if (!text || !text.trim()) {
+    showToast('Kopyalanacak metin bulunamadı.', false);
+    return;
+  }
+  const str = String(text).trim();
+
+  if (event) {
+    createSparkles(event.clientX, event.clientY);
+  }
+
+  const doSuccess = () => {
+    showToast(successMsg, true);
+    const autoAdv = document.getElementById('chkAutoAdvance');
+    if (triggerAutoAdvance && autoAdv && autoAdv.checked) {
+      setTimeout(() => {
+        nextProduct();
+      }, 350);
+    }
+  };
+
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(str).then(doSuccess).catch(() => fallbackCopy(str, doSuccess));
+  } else {
+    fallbackCopy(str, doSuccess);
+  }
+}
+
+function fallbackCopy(text, cb) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  try {
+    document.execCommand('copy');
+    cb();
+  } catch (e) {
+    showToast('Kopyalama başarısız oldu.', false);
+  }
+  document.body.removeChild(ta);
+}
+
+/* ========================================================= */
+/* 4. API İŞLEMLERİ & OTURUM YÖNETİMİ                        */
+/* ========================================================= */
+async function fetchApi(path, options = {}) {
   const token = LS.get('tobim_token', '');
   const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
   if (token) headers['Authorization'] = 'Bearer ' + token;
 
-  try {
-    const res = await fetch(path, { ...options, headers });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      throw new Error(data.error || 'İşlem sırasında bir hata oluştu.');
-    }
-    return data;
-  } catch (err) {
-    throw err;
+  const res = await fetch(path, { ...options, headers });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || 'İşlem sırasında bir hata oluştu.');
   }
+  return data;
 }
 
-/* ============ GÖRÜNÜM YÖNETİMİ ============ */
-function show(n) {
-  const plans = n === 'plans';
-  $('#card').style.display = plans ? 'none' : '';
-  $('#plans').classList.toggle('on', plans);
-  $$('#card .view').forEach(v => v.classList.toggle('active', v.dataset.v === n));
-  if (plans) renderPlans();
-  $('main').scrollTop = 0;
-  const first = $('#card .view.active input:not([type=checkbox])');
-  if (first && !plans) setTimeout(() => first.focus({ preventScroll: true }), 350);
+// Şifre Göster / Gizle
+document.querySelectorAll('.eye').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const inp = btn.parentElement.querySelector('input');
+    if (!inp) return;
+    const isPw = inp.type === 'password';
+    inp.type = isPw ? 'text' : 'password';
+  });
+});
+
+// Şifre Güç Metresi
+const rPw = document.getElementById('rPw');
+const rMeter = document.getElementById('rMeter');
+if (rPw && rMeter) {
+  rPw.addEventListener('input', e => {
+    const val = e.target.value;
+    let s = 0;
+    if (val.length >= 6) s++;
+    if (/[A-Z]/.test(val) && /[a-z]/.test(val)) s++;
+    if (/\d/.test(val)) s++;
+    if (/[^A-Za-z0-9]/.test(val) || val.length >= 10) s++;
+    rMeter.dataset.s = val ? Math.max(1, s) : 0;
+  });
 }
 
-async function route() {
+// Kayıt Platform Seçim Kartları
+const regPlatformCards = document.querySelectorAll('#regPlatformGrid .plat-card');
+regPlatformCards.forEach(card => {
+  card.addEventListener('click', () => {
+    card.classList.toggle('active');
+  });
+});
+
+function getSelectedRegisterPlatforms() {
+  const selected = [];
+  document.querySelectorAll('#regPlatformGrid .plat-card.active').forEach(c => {
+    selected.push(c.dataset.platform);
+  });
+  return selected.length > 0 ? selected : ['etsy'];
+}
+
+// 1. GİRİŞ YAP
+const fLogin = document.getElementById('fLogin');
+fLogin.addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = document.getElementById('btnLogin');
+  const errBox = document.getElementById('loginErr');
+  errBox.classList.remove('show');
+  errBox.textContent = '';
+
+  const email = document.getElementById('lEmail').value.trim();
+  const password = document.getElementById('lPw').value;
+
+  if (!email || !password) {
+    errBox.textContent = 'Lütfen e-posta ve şifrenizi giriniz.';
+    errBox.classList.add('show');
+    return;
+  }
+
+  btn.classList.add('load');
+  try {
+    const res = await fetchApi('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password })
+    });
+
+    LS.set('tobim_token', res.token);
+    currentUser = res.user;
+
+    await saveToGooglePasswords(email, password, currentUser.name);
+
+    initAppView();
+    showToast(`Tekrar hoş geldin, ${currentUser.name}!`);
+  } catch (err) {
+    errBox.textContent = err.message;
+    errBox.classList.add('show');
+  } finally {
+    btn.classList.remove('load');
+  }
+});
+
+// 2. KAYIT OLUŞTUR
+const fRegister = document.getElementById('fRegister');
+fRegister.addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = document.getElementById('btnReg');
+  const errBox = document.getElementById('regErr');
+  errBox.classList.remove('show');
+  errBox.textContent = '';
+
+  const name = document.getElementById('rName').value.trim();
+  const email = document.getElementById('rEmail').value.trim();
+  const password = document.getElementById('rPw').value;
+  const platforms = getSelectedRegisterPlatforms();
+
+  if (!name || !email || !password) {
+    errBox.textContent = 'Lütfen tüm alanları eksiksiz doldurunuz.';
+    errBox.classList.add('show');
+    return;
+  }
+
+  btn.classList.add('load');
+  try {
+    const res = await fetchApi('/api/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({
+        name,
+        email,
+        password,
+        platforms,
+        platformAccounts: {}
+      })
+    });
+
+    LS.set('tobim_token', res.token);
+    currentUser = res.user;
+
+    await saveToGooglePasswords(email, password, name);
+
+    initAppView();
+    showToast(`Hesabınız oluşturuldu! Hoş geldiniz, ${currentUser.name}`);
+  } catch (err) {
+    errBox.textContent = err.message;
+    errBox.classList.add('show');
+  } finally {
+    btn.classList.remove('load');
+  }
+});
+
+// 3. ÇIKIŞ YAP
+document.getElementById('btnLogout').addEventListener('click', async () => {
+  try {
+    await fetchApi('/api/auth/logout', { method: 'POST' });
+  } catch (_) {}
+  LS.del('tobim_token');
+  currentUser = null;
+  document.getElementById('appScreen').style.display = 'none';
+  document.getElementById('authScreen').style.display = 'flex';
+  closeAllCards();
+  showToast('Çıkış yapıldı.');
+});
+
+// Sayfa Açılış Kontrolü
+async function checkExistingSession() {
   const token = LS.get('tobim_token', '');
   if (!token) {
-    if (currentPendingEmail) {
-      $('#vMail').textContent = currentPendingEmail;
-      return show('verify');
-    }
-    return show('login');
+    document.getElementById('authScreen').style.display = 'flex';
+    document.getElementById('appScreen').style.display = 'none';
+    closeAllCards();
+    return;
   }
 
   try {
-    const res = await api('/api/auth/me');
+    const res = await fetchApi('/api/auth/me');
     if (res.ok && res.user) {
       currentUser = res.user;
-      if (!currentUser.verified) {
-        currentPendingEmail = currentUser.email;
-        $('#vMail').textContent = currentPendingEmail;
-        return show('verify');
+      initAppView();
+    } else {
+      throw new Error();
+    }
+  } catch (_) {
+    LS.del('tobim_token');
+    document.getElementById('authScreen').style.display = 'flex';
+    document.getElementById('appScreen').style.display = 'none';
+    closeAllCards();
+  }
+}
+
+function initAppView() {
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('appScreen').style.display = 'flex';
+  document.getElementById('userNameDisp').textContent = currentUser.name || 'Kullanıcı';
+
+  const userPlatforms = (currentUser.platforms && currentUser.platforms.length > 0)
+    ? currentUser.platforms
+    : ['etsy', 'trendyol', 'hepsiburada', 'idefix', 'pazarama'];
+
+  if (userPlatforms.includes('etsy')) {
+    currentPlatform = 'etsy';
+  } else {
+    currentPlatform = userPlatforms[0] || 'trendyol';
+  }
+
+  setupPlatformTabs(userPlatforms);
+  switchPlatform(currentPlatform);
+}
+
+function setupPlatformTabs(allowedPlatforms) {
+  const tabs = document.querySelectorAll('#platformTabs .plat-tab');
+  tabs.forEach(tab => {
+    const p = tab.dataset.p;
+    tab.style.display = 'inline-flex';
+    tab.classList.toggle('active', p === currentPlatform);
+    
+    tab.onclick = () => {
+      switchPlatform(p);
+    };
+  });
+}
+
+function switchPlatform(p) {
+  currentPlatform = p;
+  document.querySelectorAll('#platformTabs .plat-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.p === p);
+  });
+
+  const info = PLATFORM_INFOS[p] || PLATFORM_INFOS['etsy'];
+  document.getElementById('platTitle').textContent = info.title;
+  document.getElementById('platSub').textContent = info.sub;
+
+  const etsyOptSection = document.getElementById('etsyOptimizerSection');
+  const etsyNotice = document.getElementById('etsyApiKeyNotice');
+
+  if (p === 'etsy') {
+    etsyOptSection.style.display = 'block';
+    if (etsyNotice) etsyNotice.style.display = 'flex';
+  } else {
+    etsyOptSection.style.display = 'none';
+    if (etsyNotice) etsyNotice.style.display = 'none';
+  }
+
+  if (parsedProducts.length > 0) {
+    renderCurrentProduct();
+  }
+}
+
+/* ========================================================= */
+/* 5. EXCEL & CSV YÜKLEME VE SHEETJS ENTEGRASYONU           */
+/* ========================================================= */
+const dropArea = document.getElementById('dropArea');
+const fileInput = document.getElementById('fileInput');
+
+dropArea.addEventListener('click', () => fileInput.click());
+
+dropArea.addEventListener('dragover', e => {
+  e.preventDefault();
+  dropArea.classList.add('dragover');
+});
+
+dropArea.addEventListener('dragleave', () => {
+  dropArea.classList.remove('dragover');
+});
+
+dropArea.addEventListener('drop', e => {
+  e.preventDefault();
+  dropArea.classList.remove('dragover');
+  if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+    handleFile(e.dataTransfer.files[0]);
+  }
+});
+
+fileInput.addEventListener('change', e => {
+  if (e.target.files && e.target.files[0]) {
+    handleFile(e.target.files[0]);
+  }
+});
+
+function handleFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+      const json = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+
+      if (!json || json.length === 0) {
+        showToast('Dosya içeriğinde veri bulunamadı.', false);
+        return;
       }
-      if (!currentUser.plan) return show('plans');
-      fillDone(currentUser);
-      return show('done');
+
+      parsedProducts = json;
+      currentProductIndex = 0;
+      currentImageIndex = 0;
+
+      document.getElementById('uploadStatusText').textContent = `Yüklendi: ${file.name} (${json.length} Ürün)`;
+      showToast(`${json.length} ürün başarıyla yüklendi!`);
+
+      detectAndSetupColumns(Object.keys(json[0]));
+      document.getElementById('colMapCard').style.display = 'block';
+      document.getElementById('productSection').style.display = 'block';
+
+      renderCurrentProduct();
+    } catch (err) {
+      console.error(err);
+      showToast('Dosya okunurken hata oluştu: ' + err.message, false);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function detectAndSetupColumns(cols) {
+  const findMatch = (keywords) => {
+    for (const c of cols) {
+      const lower = String(c).toLowerCase().trim();
+      if (keywords.some(k => lower.includes(k))) return c;
+    }
+    return cols[0] || '';
+  };
+
+  detectedColumns.title = findMatch(['title', 'başlık', 'baslik', 'urun adi', 'ürün adı', 'name', 'ad']);
+  detectedColumns.desc = findMatch(['description', 'açıklama', 'aciklama', 'detay', 'body', 'özellik']);
+  detectedColumns.price = findMatch(['price', 'fiyat', 'satis', 'regular_price', 'tutar']);
+  detectedColumns.stock = findMatch(['stock', 'stok', 'sku', 'barkod', 'barcode', 'adet', 'quantity']);
+  detectedColumns.images = findMatch(['image', 'resim', 'foto', 'photo', 'görsel', 'gorsel', 'url', 'link']);
+
+  populateSelect('selColTitle', cols, detectedColumns.title);
+  populateSelect('selColDesc', cols, detectedColumns.desc);
+  populateSelect('selColPrice', cols, detectedColumns.price);
+  populateSelect('selColStock', cols, detectedColumns.stock);
+  populateSelect('selColImages', cols, detectedColumns.images);
+}
+
+function populateSelect(id, cols, selected) {
+  const sel = document.getElementById(id);
+  sel.innerHTML = '';
+  cols.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c;
+    opt.textContent = c;
+    if (c === selected) opt.selected = true;
+    sel.appendChild(opt);
+  });
+
+  sel.onchange = () => {
+    if (id === 'selColTitle') detectedColumns.title = sel.value;
+    if (id === 'selColDesc') detectedColumns.desc = sel.value;
+    if (id === 'selColPrice') detectedColumns.price = sel.value;
+    if (id === 'selColStock') detectedColumns.stock = sel.value;
+    if (id === 'selColImages') detectedColumns.images = sel.value;
+    renderCurrentProduct();
+  };
+}
+
+/* ========================================================= */
+/* 6. ÜRÜN GÖRÜNTÜLEME & GÖRSEL GALERİSİ (İLERİ/GERİ SLAYT) */
+/* ========================================================= */
+function parseImages(raw) {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw.filter(Boolean);
+  const str = String(raw).trim();
+  if (!str) return [];
+
+  let parts = [];
+  if (str.includes('\n')) {
+    parts = str.split('\n');
+  } else if (str.includes(',')) {
+    parts = str.split(',');
+  } else if (str.includes(';')) {
+    parts = str.split(';');
+  } else {
+    parts = [str];
+  }
+
+  return parts
+    .map(p => p.trim())
+    .filter(p => p.startsWith('http://') || p.startsWith('https://') || p.startsWith('data:image'));
+}
+
+function renderCurrentProduct() {
+  if (!parsedProducts || parsedProducts.length === 0) return;
+  const p = parsedProducts[currentProductIndex];
+
+  document.getElementById('navCounter').textContent = `Ürün ${currentProductIndex + 1} / ${parsedProducts.length}`;
+
+  const titleVal = String(p[detectedColumns.title] || 'Başlık Belirtilmemiş').trim();
+  const descVal = String(p[detectedColumns.desc] || 'Açıklama Belirtilmemiş').trim();
+  const priceVal = String(p[detectedColumns.price] || '-').trim();
+  const stockVal = String(p[detectedColumns.stock] || '-').trim();
+
+  document.getElementById('prodTitle').textContent = titleVal;
+  document.getElementById('prodDesc').textContent = descVal;
+  document.getElementById('prodPrice').textContent = priceVal;
+  document.getElementById('prodStock').textContent = stockVal;
+
+  const rawImages = p[detectedColumns.images];
+  const images = parseImages(rawImages);
+  setupGallery(images);
+
+  const existingOptTitle = p['ETSY_OPTIMIZED_TITLE'] || p['optimized_title'] || '';
+  const existingOptDesc = p['ETSY_OPTIMIZED_DESCRIPTION'] || p['optimized_description'] || '';
+  const existingOptTags = p['ETSY_OPTIMIZED_TAGS'] || p['optimized_tags'] || '';
+
+  if (existingOptTitle) {
+    document.getElementById('etsyOptTitle').textContent = existingOptTitle;
+  } else {
+    document.getElementById('etsyOptTitle').textContent = 'Henüz optimize edilmedi. "Gemini ile Optimize Et" butonuna basınız.';
+  }
+
+  if (existingOptDesc) {
+    document.getElementById('etsyOptDesc').textContent = existingOptDesc;
+  } else {
+    document.getElementById('etsyOptDesc').textContent = 'Henüz optimize edilmedi.';
+  }
+
+  if (existingOptTags) {
+    let tagList = Array.isArray(existingOptTags) ? existingOptTags : String(existingOptTags).split(',');
+    renderEtsyTags(tagList);
+  } else {
+    document.getElementById('etsyTagsWrap').innerHTML = '<span style="font-size:13px;color:var(--mut)">Henüz etiket üretilmedi.</span>';
+  }
+}
+
+let currentImagesList = [];
+
+function setupGallery(imgs) {
+  currentImagesList = imgs;
+  currentImageIndex = 0;
+  updateGalleryDisplay();
+}
+
+function updateGalleryDisplay() {
+  const mainImg = document.getElementById('mainImage');
+  const counter = document.getElementById('imgCounter');
+  const thumbsRow = document.getElementById('thumbsRow');
+  const fullLink = document.getElementById('imgFullLink');
+  const btnPrev = document.getElementById('imgPrev');
+  const btnNext = document.getElementById('imgNext');
+
+  thumbsRow.innerHTML = '';
+
+  if (!currentImagesList || currentImagesList.length === 0) {
+    mainImg.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 24 24" fill="none" stroke="%23555" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>';
+    counter.textContent = 'Görsel Yok';
+    fullLink.style.display = 'none';
+    btnPrev.style.display = 'none';
+    btnNext.style.display = 'none';
+    return;
+  }
+
+  if (currentImageIndex < 0) currentImageIndex = 0;
+  if (currentImageIndex >= currentImagesList.length) currentImageIndex = currentImagesList.length - 1;
+
+  const curSrc = currentImagesList[currentImageIndex];
+  mainImg.src = curSrc;
+  counter.textContent = `Görsel ${currentImageIndex + 1} / ${currentImagesList.length}`;
+  fullLink.href = curSrc;
+  fullLink.style.display = 'inline-block';
+
+  btnPrev.style.display = currentImagesList.length > 1 ? 'grid' : 'none';
+  btnNext.style.display = currentImagesList.length > 1 ? 'grid' : 'none';
+
+  currentImagesList.forEach((src, idx) => {
+    const t = document.createElement('img');
+    t.className = 'thumb-img' + (idx === currentImageIndex ? ' active' : '');
+    t.src = src;
+    t.onclick = () => {
+      currentImageIndex = idx;
+      updateGalleryDisplay();
+    };
+    thumbsRow.appendChild(t);
+  });
+}
+
+document.getElementById('imgPrev').addEventListener('click', () => {
+  if (currentImagesList.length <= 1) return;
+  currentImageIndex = (currentImageIndex - 1 + currentImagesList.length) % currentImagesList.length;
+  updateGalleryDisplay();
+});
+
+document.getElementById('imgNext').addEventListener('click', () => {
+  if (currentImagesList.length <= 1) return;
+  currentImageIndex = (currentImageIndex + 1) % currentImagesList.length;
+  updateGalleryDisplay();
+});
+
+function prevProduct() {
+  if (parsedProducts.length === 0) return;
+  currentProductIndex = (currentProductIndex - 1 + parsedProducts.length) % parsedProducts.length;
+  renderCurrentProduct();
+}
+
+function nextProduct() {
+  if (parsedProducts.length === 0) return;
+  currentProductIndex = (currentProductIndex + 1) % parsedProducts.length;
+  renderCurrentProduct();
+}
+
+document.getElementById('btnPrev').addEventListener('click', prevProduct);
+document.getElementById('btnNext').addEventListener('click', nextProduct);
+
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+  if (e.key === 'ArrowLeft') prevProduct();
+  if (e.key === 'ArrowRight') nextProduct();
+});
+
+/* ========================================================= */
+/* 7. KOPYALAMA BUTONLARI & OTOMATİK SONRAKİ ÜRÜNE ATLA      */
+/* ========================================================= */
+document.querySelectorAll('.copy-pill-btn[data-copy-target]').forEach(btn => {
+  btn.addEventListener('click', e => {
+    const targetId = btn.dataset.copyTarget;
+    const targetEl = document.getElementById(targetId);
+    if (!targetEl) return;
+    const text = targetEl.textContent.trim();
+    btn.classList.add('copied');
+    setTimeout(() => btn.classList.remove('copied'), 1200);
+    copyToClipboard(text, `${targetEl.previousElementSibling?.textContent || 'Bilgi'} Kopyalandı`, true, e);
+  });
+});
+
+/* ========================================================= */
+/* 8. SADECE ETSY İÇİN: GEMINI İLE SEO OPTİMİZATÖRÜ          */
+/* ========================================================= */
+const btnOptEtsy = document.getElementById('btnOptimizeEtsy');
+btnOptEtsy.addEventListener('click', async () => {
+  if (parsedProducts.length === 0) {
+    showToast('Lütfen önce bir liste yükleyiniz.', false);
+    return;
+  }
+
+  const p = parsedProducts[currentProductIndex];
+  const title = String(p[detectedColumns.title] || '').trim();
+  const description = String(p[detectedColumns.desc] || '').trim();
+
+  const lbl = document.getElementById('optBtnLabel');
+  lbl.textContent = 'Optimize Ediliyor...';
+  btnOptEtsy.disabled = true;
+
+  try {
+    const res = await fetchApi('/api/etsy/optimize', {
+      method: 'POST',
+      body: JSON.stringify({ title, description })
+    });
+
+    if (res.ok) {
+      document.getElementById('etsyOptTitle').textContent = res.optimized_title;
+      document.getElementById('etsyOptDesc').textContent = res.optimized_description;
+      renderEtsyTags(res.optimized_tags);
+
+      p['ETSY_OPTIMIZED_TITLE'] = res.optimized_title;
+      p['ETSY_OPTIMIZED_TAGS'] = res.optimized_tags.join(', ');
+      p['ETSY_OPTIMIZED_DESCRIPTION'] = res.optimized_description;
+
+      showToast('Etsy SEO optimizasyonu tamamlandı!');
     }
   } catch (err) {
-    LS.del('tobim_token');
-    currentUser = null;
-    show('login');
-  }
-}
-
-function fillDone(u) {
-  const p = CONFIG.plans.find(x => x.id === u.plan);
-  $('#dTitle').textContent = 'Hoş geldin, ' + (u.name ? u.name.split(' ')[0] : 'Kullanıcı');
-  $('#dPlan').textContent = p ? p.name + ' planı' : 'Başlangıç planı';
-}
-
-document.addEventListener('click', e => {
-  const g = e.target.closest('[data-go]');
-  if (g) {
-    e.preventDefault();
-    const t = g.dataset.go;
-    if (t === 'plans' && !currentUser) return;
-    show(t);
-  }
-  const f = e.target.closest('[data-fix]');
-  if (f) {
-    const form = f.closest('form');
-    const inp = $('[type=email]', form);
-    inp.value = f.dataset.fix;
-    setErr(f.parentElement, '');
-    inp.focus();
-  }
-  const eye = e.target.closest('.eye');
-  if (eye) {
-    const inp = $('input', eye.parentElement);
-    const on = inp.type === 'password';
-    inp.type = on ? 'text' : 'password';
-    eye.classList.toggle('on', on);
-    eye.setAttribute('aria-label', on ? 'Şifreyi gizle' : 'Şifreyi göster');
-  }
-});
-
-/* ============ E-POSTA KONTROLÜ ============ */
-const TYPO = {
-  'gmial.com': 'gmail.com', 'gmai.com': 'gmail.com', 'gamil.com': 'gmail.com', 'gnail.com': 'gmail.com',
-  'gmail.con': 'gmail.com', 'gmail.co': 'gmail.com', 'hotmial.com': 'hotmail.com', 'hotmail.con': 'hotmail.com',
-  'outlok.com': 'outlook.com', 'outlook.con': 'outlook.com', 'yahho.com': 'yahoo.com', 'yaho.com': 'yahoo.com'
-};
-const TEMP = ['mailinator.com', '10minutemail.com', 'guerrillamail.com', 'tempmail.com', 'temp-mail.org',
-  'yopmail.com', 'trashmail.com', 'getnada.com', 'sharklasers.com', 'dispostable.com', 'throwawaymail.com'];
-
-function checkEmail(raw) {
-  const v = raw.trim().toLowerCase();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) || v.includes('..')) return { err: 'Geçerli bir e-posta adresi gir.' };
-  const [name, d] = v.split('@');
-  if (TYPO[d]) return { err: 'Alan adı hatalı görünüyor.', fix: name + '@' + TYPO[d] };
-  if (TEMP.includes(d)) return { err: 'Geçici e-posta adresleri kabul edilmiyor.' };
-  return { ok: v };
-}
-
-/* ============ ŞİFRE GÜCÜ ============ */
-function score(p) {
-  let s = 0;
-  if (p.length >= 8) s++;
-  if (/[a-z]/.test(p) && /[A-Z]/.test(p)) s++;
-  if (/\d/.test(p)) s++;
-  if (/[^A-Za-z0-9]/.test(p) || p.length >= 12) s++;
-  return p ? Math.max(1, s) : 0;
-}
-$('#rPw').addEventListener('input', e => {
-  $('#meter').dataset.s = score(e.target.value);
-});
-
-/* ============ GİRİŞ ============ */
-$('#fLogin').addEventListener('submit', async e => {
-  e.preventDefault();
-  const err = $('.err', e.target), btn = $('.btn', e.target);
-  setErr(err, '');
-
-  const c = checkEmail($('#lEmail').value);
-  if (!c.ok) return setErr(err, c.err, c.fix);
-  const password = $('#lPw').value;
-  if (!password) return setErr(err, 'Şifreni yaz.');
-
-  busy(btn, true);
-  try {
-    const res = await api('/api/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email: c.ok, password })
-    });
-
-    if (res.requireVerify) {
-      currentPendingEmail = res.email;
-      LS.set('tobim_pending_email', currentPendingEmail);
-      $('#vMail').textContent = currentPendingEmail;
-      say('E-posta adresini doğrulaman gerekiyor.');
-      show('verify');
-      startTimer();
-      return;
-    }
-
-    LS.set('tobim_token', res.token);
-    currentUser = res.user;
-    say('Giriş başarılı');
-    route();
-  } catch (error) {
-    setErr(err, error.message);
+    showToast('Optimizasyon hatası: ' + err.message, false);
   } finally {
-    busy(btn, false);
+    lbl.textContent = 'Gemini ile Optimize Et';
+    btnOptEtsy.disabled = false;
   }
 });
 
-/* ============ KAYIT ============ */
-$('#fReg').addEventListener('submit', async e => {
-  e.preventDefault();
-  const err = $('.err', e.target), btn = $('.btn', e.target);
-  setErr(err, '');
-
-  const name = $('#rName').value.trim();
-  const password = $('#rPw').value;
-  const c = checkEmail($('#rEmail').value);
-
-  if (name.length < 2) return setErr(err, 'Adını ve soyadını yaz.');
-  if (!c.ok) return setErr(err, c.err, c.fix);
-  if (password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password)) {
-    return setErr(err, 'Şifre en az 8 karakter olmalı ve harf ile rakam içermeli.');
-  }
-  if (!$('#rTerms').checked) return setErr(err, 'Devam etmek için koşulları kabul et.');
-
-  busy(btn, true);
-  try {
-    const res = await api('/api/auth/register', {
-      method: 'POST',
-      body: JSON.stringify({ name, email: c.ok, password })
-    });
-
-    currentPendingEmail = res.email;
-    LS.set('tobim_pending_email', currentPendingEmail);
-    $('#vMail').textContent = currentPendingEmail;
-    cells.forEach(cell => cell.value = '');
-    setErr($('#vErr'), '');
-
-    if (res.previewCode) {
-      say('Doğrulama kodu e-postana gönderildi! (Test Kodu: ' + res.previewCode + ')', 8000);
-    } else {
-      say('6 haneli doğrulama kodu e-posta adresine gönderildi.');
-    }
-
-    show('verify');
-    startTimer();
-  } catch (error) {
-    setErr(err, error.message);
-  } finally {
-    busy(btn, false);
-  }
-});
-
-/* ============ ŞİFRE SIFIRLAMA ============ */
-$('#fReset').addEventListener('submit', async e => {
-  e.preventDefault();
-  const err = $('.err', e.target), btn = $('.btn', e.target);
-  setErr(err, '');
-  const c = checkEmail($('#pEmail').value);
-  if (!c.ok) return setErr(err, c.err, c.fix);
-
-  busy(btn, true);
-  await new Promise(r => setTimeout(r, 600));
-  busy(btn, false);
-  say('Bu adres kayıtlıysa sıfırlama bağlantısı gönderildi.', 4000);
-  show('login');
-});
-
-/* ============ DOĞRULAMA KODU (OTP) ============ */
-let timer = null;
-const otp = $('#otp');
-otp.innerHTML = '';
-for (let i = 0; i < CONFIG.otpLength; i++) {
-  const inp = document.createElement('input');
-  inp.maxLength = 1;
-  inp.inputMode = 'numeric';
-  inp.autocomplete = i ? 'off' : 'one-time-code';
-  inp.setAttribute('aria-label', (i + 1) + '. hane');
-  otp.appendChild(inp);
-}
-const cells = $$('input', otp);
-
-function readCode() {
-  return cells.map(c => c.value).join('');
-}
-
-cells.forEach((c, i) => {
-  c.addEventListener('input', () => {
-    c.value = c.value.replace(/\D/g, '');
-    if (c.value && cells[i + 1]) cells[i + 1].focus();
-    if (readCode().length === cells.length) checkCode();
-  });
-  c.addEventListener('keydown', e => {
-    if (e.key === 'Backspace' && !c.value && cells[i - 1]) {
-      cells[i - 1].focus();
-      cells[i - 1].value = '';
-    }
-  });
-  c.addEventListener('paste', e => {
-    e.preventDefault();
-    const d = (e.clipboardData.getData('text') || '').replace(/\D/g, '').slice(0, cells.length);
-    d.split('').forEach((ch, k) => cells[k].value = ch);
-    (cells[Math.min(d.length, cells.length - 1)]).focus();
-    if (d.length === cells.length) checkCode();
-  });
-});
-
-function startTimer() {
-  let s = CONFIG.resendSeconds;
-  const b = $('#resend');
-  b.disabled = true;
-  clearInterval(timer);
-  const tick = () => {
-    b.textContent = s > 0 ? 'Tekrar gönder (' + s + ')' : 'Tekrar gönder';
-    if (s-- <= 0) {
-      clearInterval(timer);
-      b.disabled = false;
-    }
-  };
-  tick();
-  timer = setInterval(tick, 1000);
-}
-
-$('#resend').addEventListener('click', async () => {
-  if (!currentPendingEmail) return;
-  setErr($('#vErr'), '');
-  try {
-    const res = await api('/api/auth/resend', {
-      method: 'POST',
-      body: JSON.stringify({ email: currentPendingEmail })
-    });
-    if (res.previewCode) {
-      say('Yeni kod gönderildi! (Test: ' + res.previewCode + ')', 8000);
-    } else {
-      say('Yeni doğrulama kodu e-postana gönderildi.');
-    }
-    cells.forEach(c => c.value = '');
-    cells[0].focus();
-    startTimer();
-  } catch (error) {
-    setErr($('#vErr'), error.message);
-  }
-});
-
-async function checkCode() {
-  const code = readCode();
-  if (code.length !== CONFIG.otpLength) return;
-  setErr($('#vErr'), '');
-
-  try {
-    const res = await api('/api/auth/verify', {
-      method: 'POST',
-      body: JSON.stringify({ email: currentPendingEmail, code })
-    });
-
-    LS.set('tobim_token', res.token);
-    LS.del('tobim_pending_email');
-    currentUser = res.user;
-    clearInterval(timer);
-    say('E-posta başarıyla doğrulandı!');
-    route();
-  } catch (error) {
-    setErr($('#vErr'), error.message);
-    cells.forEach(c => c.value = '');
-    cells[0].focus();
-  }
-}
-
-/* ============ PLANLAR ============ */
-let yearly = 0, selPlan = 'pro';
-const tl = '<svg class="ico" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10"/></svg>';
-
-function renderPlans() {
-  $('#pgrid').innerHTML = CONFIG.plans.map((p, i) => {
-    const price = p.price[yearly];
-    return '<article class="plan' + (p.pop ? ' pop' : '') + (p.id === selPlan ? ' sel' : '') + '" data-p="' + p.id + '" style="--i:' + i + '" tabindex="0" role="button" aria-pressed="' + (p.id === selPlan) + '">' +
-      (p.pop ? '<span class="badge">Önerilen</span>' : '') +
-      '<h3>' + p.name + '</h3><p>' + p.desc + '</p>' +
-      '<div class="price">' + (price ? '₺' + price + '<small>/ay</small>' : 'Ücretsiz') + '</div>' +
-      '<ul>' + p.features.map(f => '<li>' + tl + f + '</li>').join('') + '</ul></article>';
-  }).join('');
-  const p = CONFIG.plans.find(x => x.id === selPlan);
-  $('#pGo .lbl').textContent = p.name + ' ile devam et';
-}
-
-$('#pgrid').addEventListener('click', e => {
-  const c = e.target.closest('.plan');
-  if (!c) return;
-  selPlan = c.dataset.p;
-  $$('.plan').forEach(x => {
-    const on = x === c;
-    x.classList.toggle('sel', on);
-    x.setAttribute('aria-pressed', on);
-  });
-  $('#pGo .lbl').textContent = CONFIG.plans.find(x => x.id === selPlan).name + ' ile devam et';
-});
-
-$('#pgrid').addEventListener('keydown', e => {
-  if (e.key === 'Enter' || e.key === ' ') {
-    e.preventDefault();
-    e.target.click();
-  }
-});
-
-$('#tog').addEventListener('click', e => {
-  const b = e.target.closest('button');
-  if (!b) return;
-  yearly = +b.dataset.b;
-  $$('#tog button').forEach(x => x.classList.toggle('on', x === b));
-  renderPlans();
-  $$('.plan').forEach(x => x.style.animation = 'none');
-});
-
-$('#pGo').addEventListener('click', async () => {
-  const btn = $('#pGo');
-  busy(btn, true);
-  try {
-    const res = await api('/api/auth/plan', {
-      method: 'POST',
-      body: JSON.stringify({ plan: selPlan, billing: yearly ? 'yearly' : 'monthly' })
-    });
-    currentUser = res.user;
-    say('Planın güncellendi');
-    fillDone(currentUser);
-    show('done');
-  } catch (error) {
-    say(error.message);
-  } finally {
-    busy(btn, false);
-  }
-});
-
-/* ============ WINDOWS HELLO / WEBAUTHN ============ */
-const b64 = buf => btoa(String.fromCharCode.apply(null, new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-const unb64 = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
-const rnd = n => crypto.getRandomValues(new Uint8Array(n));
-
-function pkSupport(el) {
-  if (!window.PublicKeyCredential) {
-    setErr(el, 'Bu tarayıcı geçiş anahtarlarını desteklemiyor.');
-    return false;
-  }
-  if (!window.isSecureContext) {
-    setErr(el, 'Geçiş anahtarı için sayfayı http://localhost üzerinden aç ya da https kullan.');
-    return false;
-  }
-  return true;
-}
-
-function pkError(el, e) {
-  const m = {
-    NotAllowedError: 'İşlem iptal edildi ya da zaman aşımına uğradı.',
-    InvalidStateError: 'Bu cihazda bu hesap için zaten bir anahtar var.',
-    SecurityError: 'Güvenlik hatası: sayfayı http://localhost veya https üzerinden aç.',
-    NotSupportedError: 'Bu cihaz istenen anahtar türünü desteklemiyor.'
-  };
-  setErr(el, m[e.name] || 'Geçiş anahtarı işlemi başarısız oldu.');
-}
-
-async function pkCreate() {
-  const el = $('#dErr');
-  setErr(el, '');
-  if (!pkSupport(el)) return;
-  if (!currentUser) return;
-
-  try {
-    const c = await navigator.credentials.create({
-      publicKey: {
-        challenge: rnd(32),
-        rp: { name: CONFIG.brand },
-        user: { id: rnd(16), name: currentUser.email, displayName: currentUser.name },
-        pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
-        authenticatorSelection: { userVerification: 'required', residentKey: 'preferred' },
-        timeout: 60000,
-        attestation: 'none'
-      }
-    });
-    const keys = LS.get('tobim_keys', {});
-    keys[b64(c.rawId)] = currentUser.email;
-    LS.set('tobim_keys', keys);
-    say('Windows Hello anahtarı eklendi');
-  } catch (e) {
-    pkError(el, e);
-  }
-}
-
-async function pkLogin() {
-  const el = $('#pkErr');
-  setErr(el, '');
-  if (!pkSupport(el)) return;
-  const keys = LS.get('tobim_keys', {}), ids = Object.keys(keys);
-  if (!ids.length) {
-    return setErr(el, 'Bu cihazda kayıtlı anahtar yok. Önce normal giriş yapıp Windows Hello anahtarı ekleyebilirsin.');
+function renderEtsyTags(tags) {
+  const wrap = document.getElementById('etsyTagsWrap');
+  wrap.innerHTML = '';
+  if (!tags || tags.length === 0) {
+    wrap.innerHTML = '<span style="font-size:13px;color:var(--mut)">Etiket bulunamadı.</span>';
+    return;
   }
 
-  try {
-    const a = await navigator.credentials.get({
-      publicKey: {
-        challenge: rnd(32),
-        userVerification: 'required',
-        timeout: 60000,
-        allowCredentials: ids.map(id => ({ type: 'public-key', id: unb64(id) }))
-      }
-    });
-    const email = keys[b64(a.rawId)];
-    if (!email) return setErr(el, 'Bu anahtara bağlı hesap bulunamadı.');
-
-    say('Windows Hello doğrulandı');
-    route();
-  } catch (e) {
-    pkError(el, e);
-  }
-}
-
-$('#pkLogin').addEventListener('click', pkLogin);
-$('#pkAdd').addEventListener('click', pkCreate);
-
-$('#logout').addEventListener('click', async () => {
-  try {
-    await api('/api/auth/logout', { method: 'POST' });
-  } catch (e) {}
-  LS.del('tobim_token');
-  LS.del('tobim_pending_email');
-  currentUser = null;
-  show('login');
-});
-
-/* ============ AÇILIŞ ANİMASYONU ============ */
-let intro = $('#intro');
-function buildWord() {
-  const w = $('#word', intro);
-  w.innerHTML = '';
-  CONFIG.brand.split('').forEach((c, i) => {
-    const s = document.createElement('span');
-    s.textContent = c;
-    s.style.animationDelay = (1 + i * 0.07) + 's';
-    w.appendChild(s);
+  tags.forEach((tag, idx) => {
+    const cleanTag = String(tag).trim();
+    if (!cleanTag) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'etsy-tag-btn';
+    btn.innerHTML = `<span style="opacity:.6">${idx + 1}.</span> <b>${cleanTag}</b>`;
+    btn.title = 'Tıkla ve kopyala';
+    btn.onclick = e => {
+      btn.classList.add('copied');
+      setTimeout(() => btn.classList.remove('copied'), 1000);
+      copyToClipboard(cleanTag, `Etiket kopyalandı: "${cleanTag}"`, false, e);
+    };
+    wrap.appendChild(btn);
   });
 }
 
-function play() {
-  document.body.classList.remove('ready');
-  intro.classList.remove('out');
-  const clone = intro.cloneNode(true);
-  intro.replaceWith(clone);
-  intro = clone;
-  buildWord();
-  setTimeout(() => {
-    intro.classList.add('out');
-    document.body.classList.add('ready');
-  }, 3100);
-}
-
-$('#replay').addEventListener('click', play);
-play();
-route();
-
-window.addEventListener('pointermove', e => {
-  document.documentElement.style.setProperty('--mx', e.clientX + 'px');
-  document.documentElement.style.setProperty('--my', e.clientY + 'px');
-  const c = $('#card');
-  if (c) {
-    const r = c.getBoundingClientRect();
-    c.style.setProperty('--cx', (e.clientX - r.left) + 'px');
-    c.style.setProperty('--cy', (e.clientY - r.top) + 'px');
+document.getElementById('btnCopyAllTags').addEventListener('click', e => {
+  const tagBtns = document.querySelectorAll('#etsyTagsWrap .etsy-tag-btn b');
+  if (tagBtns.length === 0) {
+    showToast('Kopyalanacak etiket bulunamadı.', false);
+    return;
   }
+  const all = Array.from(tagBtns).map(b => b.textContent.trim()).join(', ');
+  copyToClipboard(all, '13 Etiketin Tümü Virgülle Kopyalandı!', true, e);
 });
+
+// Başlat
+checkExistingSession();

@@ -18,7 +18,7 @@ app.get('*', (req, res, next) => {
 
 app.listen(PORT, () => {
   console.log(`===============================================`);
-  console.log(`✦ Tobim Sunucusu Başlatıldı: http://localhost:${PORT}`);
+  console.log(`✦ Scaleon Sunucusu Başlatıldı: http://localhost:${PORT}`);
   console.log(`✦ Ortam: ${process.env.NODE_ENV || 'development'}`);
   console.log(`===============================================`);
 });

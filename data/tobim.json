@@ -1,5 +1,71 @@
 {
-  "users": {},
+  "users": {
+    "elmusto334@gmail.com": {
+      "name": "Emir Yargıcı",
+      "email": "elmusto334@gmail.com",
+      "passwordHash": "$2a$10$nZhDfGk.LggIls6ZsT/RA.TO4z4PYALZb79/XULGzeDVaZxYXkhka",
+      "verified": true,
+      "platforms": [
+        "trendyol",
+        "etsy",
+        "hepsiburada",
+        "idefix",
+        "pazarama"
+      ],
+      "platformAccounts": {},
+      "plan": "pro",
+      "billing": "monthly",
+      "createdAt": 1794387989705
+    },
+    "awdawdaw@a.com": {
+      "name": "awdawd",
+      "email": "awdawdaw@a.com",
+      "passwordHash": "$2a$10$qlawUnZLOzJwi7o1LejfI.xGdpe9MDWJmyaSVs5txSgdTqT0e9Ure",
+      "verified": true,
+      "platforms": [
+        "trendyol"
+      ],
+      "platformAccounts": {},
+      "registrationIp": "::1",
+      "lastLoginIp": "::1",
+      "ipHistory": [
+        {
+          "ip": "::1",
+          "date": "2026-11-11T10:48:07.149Z",
+          "type": "register"
+        }
+      ],
+      "plan": "pro",
+      "billing": "monthly",
+      "createdAt": 1794394087149
+    },
+    "deneme@xn--gmail-bgd.com": {
+      "name": "deneme123",
+      "email": "deneme@xn--gmail-bgd.com",
+      "passwordHash": "$2a$10$gxzYE9ZQoohEzk7I6sDbSOYsd7Ig5BmsJ6D9pr/nOVWOhQigcA9qm",
+      "verified": true,
+      "platforms": [
+        "trendyol",
+        "etsy",
+        "hepsiburada",
+        "idefix",
+        "pazarama"
+      ],
+      "platformAccounts": {},
+      "registrationIp": "::1",
+      "lastLoginIp": "::1",
+      "ipHistory": [
+        {
+          "ip": "::1",
+          "date": "2026-11-11T11:34:17.361Z",
+          "type": "register"
+        }
+      ],
+      "plan": "pro",
+      "billing": "monthly",
+      "createdAt": 1794396857361
+    }
+  },
   "otps": {},
   "sessions": {}
 }

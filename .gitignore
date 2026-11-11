@@ -1,3 +1,4 @@
 node_modules
 .env
+.gemini_api_key
 .DS_Store

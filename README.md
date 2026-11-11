@@ -1,22 +1,18 @@
-# Nova – giriş, kayıt ve plan seçimi
+# Scaleon - Çoklu Pazaryeri Entegrasyon & Satış Paneli
 
-Klasör yapısı
-- index.html        sayfa iskeleti (tüm ekranlar burada)
-- css/style.css     tüm stiller (renkler en üstteki :root içinde)
-- js/app.js         mantık; ayarlar dosyanın başındaki CONFIG içinde (marka adı, planlar, fiyatlar)
-- assets/logo.svg   logo, favicon.svg aynı logonun favicon hali
+Scaleon; Trendyol, Etsy, Hepsiburada, İdefix ve Pazarama gibi pazaryerlerini tek çatı altında toplayan modern bir e-ticaret yönetim aracıdır.
 
-Çalıştırma
-1. start.bat dosyasına çift tıkla (Python gerekir) ya da klasörde: python -m http.server 8000
-2. Tarayıcıda http://localhost:8000 adresini aç.
-Windows Hello / geçiş anahtarı yalnızca http://localhost veya https üzerinde çalışır, dosyaya çift tıklayarak açınca çalışmaz.
+## 🚀 Özellikler
+- **2 Kademeli Hızlı Giriş & Kayıt:** Google Password Manager uyumlu, IP kayıtlı, animasyonlu oval sliding-pill tasarımı.
+- **Pazaryeri Seçimi:** Trendyol, Etsy, Hepsiburada, İdefix ve Pazarama resmi vektör logolarıyla entegre mağaza yönetimi.
+- **Etsy AI SEO Optimizatörü:** Google Gemini AI ile Etsy algoritmasına tam uyumlu 140 karakter başlık, 13 etiket ve SEO açıklamaları.
+- **Excel & CSV Hızlı Yükleme:** Sürükle-bırak dosya yükleme ve akıllı sütun tespiti (Başlık, Açıklama, Fiyat, Stok/Barkod, Görseller).
+- **Fotoğraf Galerisi & Slayt:** Ürün görselleri arasında ileri-geri gezinme ve küçük resim önizlemeleri.
+- **Otomatik Sıradaki Ürüne Atlama:** Herhangi bir veriyi kopyaladığınızda anında bir sonraki ürüne geçen hızlandırma modu.
 
-Akış: Giriş ⇄ Kayıt → E-posta doğrulama kodu → Plan seçimi → Hazır ekranı (Windows Hello anahtarı ekle)
-
-Önemli: Bu bir ön yüz demosudur. Kullanıcılar tarayıcının localStorage alanında tutulur,
-doğrulama kodu sunucu olmadığı için ekranda gösterilir. Gerçek kullanımda:
-- kodu ve e-postayı sunucuda üret/gönder (js/app.js içinde sendCode),
-- şifreleri sunucuda hashle,
-- Windows Hello challenge ve imzasını sunucuda doğrula (js/app.js içinde pkCreate / pkLogin).
-# tobimv1
-# scaleonv1
+## 🛠️ Kurulum & Çalıştırma
+```bash
+npm install
+node server.js
+```
+Tarayıcınızda: `http://localhost:3000`
